@@ -1,60 +1,9 @@
 import hashlib
-import json
 import os
-from pathlib import Path
 import secrets
-import sqlite3 as sq3
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-
-
-CDIR = Path('./config')
-CFILE = CDIR.joinpath('config.json')
-
-
-def config():
-    if not CDIR.is_dir():
-        CDIR.mkdir()
-    db_dir = CDIR.home().joinpath('.pman')
-    if not db_dir.is_dir():
-        db_dir.mkdir()
-    with open(CFILE, 'w') as f:
-        json.dump({"db": str(db_dir)}, f, indent=4)
-    return True
-
-
-def load_config():
-    if not CFILE.is_file():
-        config()
-    with open(CFILE) as f:
-        s = json.load(f)
-        return s['db']
-
-
-def db_connect(db_dir):
-    db = Path(db_dir).joinpath('pman.db')
-    init = False
-    if not db.is_file():
-        init = True
-    con = sq3.connect(db)
-    cur = con.cursor()
-    if init:
-        with con:
-            cur.execute("""
-                CREATE TABLE stored (
-                    id INTEGER PRIMARY KEY,
-                    name TEXT UNIQUE,
-                    display TEXT,
-                    cipher_text TEXT
-                )
-            """)
-    return con, cur
-
-
-def db_disconnect(con, cur):
-    cur.close()
-    con.close()
-    return True
+from src import manage
 
 
 def encrypt(phr, txt):
@@ -118,7 +67,7 @@ def load_phrase(con, cur):
         os.system('cls' if os.name == 'nt' else 'clear')
         try:
             verify_phrase(p, con, cur)
-        except InvalidTag as it:
+        except InvalidTag:
             print('Incorrect passphrase; try again.')
             continue
         else:
@@ -129,10 +78,10 @@ def load_phrase(con, cur):
 
 if __name__ == '__main__':
     try:
-        conn, curs = db_connect(load_config())
+        conn, curs = manage.db_connect(manage.load_config())
         try:
             phrase = load_phrase(conn, curs)
         finally:
-            db_disconnect(conn, curs)
+            manage.db_disconnect(conn, curs)
     except Exception as e:
         print(repr(e))
