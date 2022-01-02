@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import secrets
 import sqlite3 as sq3
+from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 
@@ -112,11 +113,17 @@ def verify_phrase(phr, con, cur):
 
 
 def load_phrase(con, cur):
-    p = bytes(input('Please provide your master passphrase:  '), encoding='utf-8')
-    os.system('cls' if os.name == 'nt' else 'clear')
-    v = verify_phrase(p, con, cur)
-    print('Please verify that the below is recognizable as your verification sentence:\n')
-    print(v)
+    while True:
+        p = bytes(input('Please provide your master passphrase:  '), encoding='utf-8')
+        os.system('cls' if os.name == 'nt' else 'clear')
+        try:
+            verify_phrase(p, con, cur)
+        except InvalidTag as it:
+            print('Incorrect passphrase; try again.')
+            continue
+        else:
+            break
+    input('Passphrase verified. Press enter to continue. ')
     return p
 
 
@@ -125,8 +132,7 @@ if __name__ == '__main__':
         conn, curs = db_connect(load_config())
         try:
             phrase = load_phrase(conn, curs)
-            print(phrase)
         finally:
-            print(db_disconnect(conn, curs))
+            db_disconnect(conn, curs)
     except Exception as e:
         print(repr(e))
