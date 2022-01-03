@@ -17,4 +17,12 @@ def encrypt(phr, txt):
 def decrypt(phr, iv, t, s, h):
     dk = hashlib.pbkdf2_hmac('sha256', phr, s, 320000)
     dec = Cipher(algorithms.AES(dk), modes.GCM(iv, t)).decryptor()
-    return str(dec.update(h) + dec.finalize())
+    return (dec.update(h) + dec.finalize()).decode()
+
+
+def cs2bv(cs):
+    return tuple(bytes.fromhex(val) for val in cs.split('$'))
+
+
+def bv2cs(bv):
+    return '$'.join([val.hex() for val in bv])

@@ -4,9 +4,20 @@ from cryptography.exceptions import InvalidTag
 from src import crud
 
 
+MAIN_MENU = """
+===pman Main Menu===
+
+Please review the options below:
+    [1]  View stored credentials
+    [v]  Reset verification sentence
+    [c]  Change master passphrase
+    [e]  Exit
+"""
+
+
 def load_phrase(con, cur):
     while True:
-        p = bytes(input('Please provide your master passphrase:  '), encoding='utf-8')
+        p = crud.prompt_phrase('Please provide your master passphrase:  ')
         clear()
         try:
             crud.verify_phrase(p, con, cur)
@@ -27,18 +38,23 @@ def clear():
 def prompt(phr, con, cur):
     while True:
         clear()
-        print('\n'.join([
-            '===pman Main Menu===\n',
-            'Please review the options below:',
-            '\t[1]  View stored credentials',
-            '\t[v]  Reset verification sentence',
-            '\t[e]  Exit'
-        ]))
-        sel = input('\nPlease enter your selection:  ').lower()
+        print(MAIN_MENU)
+        sel = input('Please enter your selection:  ').lower()
         if sel == '1':
             crud.view_stored(con, cur)
         elif sel == 'v':
             crud.create_new_verification(phr, con, cur)
+        elif sel == 'c':
+            print(
+                '\n***WARNING***\n'
+                + 'Changing your master passphrase is irreversible; '
+                + 'you will need to use the new phrase for future access.\n'
+            )
+            confirm = input('Do you wish to continue? ([y] to accept)  ').lower()
+            if confirm == 'y':
+                new = crud.prompt_phrase('Please provide your new master passphrase:  ')
+                crud.reencrypt_stored(phr, new, con, cur)
+                phr = new
         elif sel == 'e':
             print('Thank you for using pman; goodbye.')
             sleep(3)

@@ -11,6 +11,17 @@ def view_stored(con, cur):
     return None
 
 
+def reencrypt_stored(oldp, newp, con, cur):
+    with con:
+        cur.execute("SELECT id, cipher_text FROM stored")
+        rows = cur.fetchall()
+        for row in rows:
+            pt = crypt.decrypt(oldp, *crypt.cs2bv(row[1]))
+            ct = crypt.bv2cs(crypt.encrypt(newp, pt))
+            cur.execute("UPDATE stored SET cipher_text = ? WHERE id = ?", [ct, row[0]])
+    return True
+
+
 def create_verification(phr, con, cur):
     s = input('\n'.join([
         'Please provide a sentence to be used to verify input of your master passphrase.',
@@ -28,7 +39,7 @@ def create_verification(phr, con, cur):
         if confirm.lower() == 'y':
             break
         s = input('Provide a different sentence.\n\n')
-    ct = '$'.join([val.hex() for val in crypt.encrypt(phr, s)])
+    ct = crypt.bv2cs(crypt.encrypt(phr, s))
     with con:
         cur.execute("INSERT INTO stored (name, display, cipher_text) VALUES (?, ?, ?)",
                     ['~phrase_verification', 'PHRASE VERIFICATION', ct])
@@ -52,4 +63,14 @@ def verify_phrase(phr, con, cur):
             create_verification(phr, con, cur)
         else:
             verification = verification[0]
-    return crypt.decrypt(phr, *[bytes.fromhex(val) for val in verification.split('$')])
+    return crypt.decrypt(phr, *crypt.cs2bv(verification))
+
+
+def prompt_phrase(prompt):
+    while True:
+        p = input(prompt)
+        if len(p) < 24:
+            input('\nPassphrase must be at least 24 characters in length; try again.\n')
+        else:
+            break
+    return bytes(p, encoding='utf-8')
