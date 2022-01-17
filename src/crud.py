@@ -2,23 +2,101 @@ import re
 from src import crypt
 
 
+def generate_password():
+    params_loop = True
+    while params_loop:
+        length = 24
+        lower, upper, digit, special = True, True, True, True
+        all_required = False
+        print('\nDefault password generation parameters are as follows:\n'
+              + '\n\tlength: 24'
+              + '\n\tvalid characters: lowercase, uppercase, digits, and special'
+              + '\n\tat least one of each character group is NOT required')
+        default = input('\nIf you would like to change the default parameters, enter [y]:  ')
+        if len(default) > 0 and default[0].lower() == 'y':
+            inp = input('\nIf you would like to use a different length, enter it now:  ')
+            if len(inp) > 0:
+                if re.match(r'\d+$', inp, re.A) and int(inp) > 0:
+                    length = int(inp)
+                else:
+                    print('Invalid length value; reverting to default.')
+            inp = input('\nIf you would like to exclude any of the default character classes, enter [y]:  ')
+            if len(inp) > 0 and inp[0].lower() == 'y':
+                groups = [True, True, True, True]
+                inp = input('Exclude lowercase letters? (enter [y] if yes)  ')
+                if len(inp) > 0 and inp[0].lower() == 'y':
+                    groups[0] = False
+                inp = input('Exclude uppercase letters? (enter [y] if yes)  ')
+                if len(inp) > 0 and inp[0].lower() == 'y':
+                    groups[1] = False
+                inp = input('Exclude digits? (enter [y] if yes)  ')
+                if len(inp) > 0 and inp[0].lower() == 'y':
+                    groups[2] = False
+                inp = input('Exclude special characters? (enter [y] if yes)  ')
+                if len(inp) > 0 and inp[0].lower() == 'y':
+                    groups[3] = False
+                if not any(groups):
+                    print('Cannot exclude all character groups; reverting to default.')
+                else:
+                    lower, upper, digit, special = groups
+                    using = []
+                    if lower:
+                        using.append('lowercase')
+                    if upper:
+                        using.append('uppercase')
+                    if digit:
+                        using.append('digits')
+                    if special:
+                        using.append('special')
+                    print(f"Now using these character groups: {', '.join(using)}")
+            inp = input('\nIf you would like to require at least one character from each group, enter [y]:  ')
+            if len(inp) > 0 and inp[0].lower() == 'y':
+                all_required = True
+        params_loop = False
+        gen_loop = True
+        while gen_loop:
+            pw = crypt.generate_string(length, all_required, lower, upper, digit, special)
+            print(f'Generated the following password:  {pw}')
+            while True:
+                inp = input('\nEnter [y] to accept, [r] to regenerate, or [c] to change parameters:  ').lower()
+                if len(inp) > 0:
+                    inp = inp[0]
+                if inp == 'c':
+                    params_loop = True
+                    gen_loop = False
+                    break
+                elif inp == 'r':
+                    break
+                elif inp == 'y':
+                    gen_loop = False
+                    break
+    return pw
+
+
 def add_stored(con, cur, phr):
     disp = input('\nPlease enter the service associated with the password as you would like it to be displayed:  ')
+    disp = disp.strip()
     while True:
-        name = re.sub(r'\s', '_', disp)
-        name = re.sub(r'[^\w\d]', '', name).lower()
+        name = re.sub(r'\s+', '_', disp)
+        name = re.sub(r'\W', '', name, re.A).lower()
         with con:
             cur.execute("SELECT 1 FROM stored WHERE name = ? ORDER BY name", [name])
             if cur.fetchone():
                 disp = input('\nThe provided name has already been used; please enter a name not yet used:  ')
             else:
                 break
-    pw = input('\nNow enter the password to be associated with the given service:  ')
-    while not pw:
-        pw = input('\nNo password was provided; please enter the associated password:  ')
+    wiz = input('\nNow you will be guided through the password generation wizard (recommended); '
+                + 'if you would rather provide your own password, enter [n]:  ')
+    if len(wiz) > 0 and wiz[0].lower() == 'n':
+        pw = input('\nNow enter the password to be associated with the given service:  ')
+        while not pw:
+            pw = input('\nNo password was provided; please enter the associated password:  ')
+    else:
+        pw = generate_password()
     ct = crypt.bv2cs(crypt.encrypt(phr, pw))
     with con:
         cur.execute("INSERT INTO stored (name, display, cipher_text) VALUES (?, ?, ?)", [name, disp, ct])
+    print(f'\nNew password for service {disp} stored.\n')
     return True
 
 
@@ -26,7 +104,7 @@ def view_stored(con, cur):
     with con:
         cur.execute("SELECT display FROM stored ORDER BY name")
         vals = cur.fetchall()
-    print('===STORED CREDENTIALS===\n')
+    print('\n===STORED CREDENTIALS===\n')
     for val in vals:
         print('\t' + val[0])
     return None
@@ -45,7 +123,7 @@ def reencrypt_stored(oldp, newp, con, cur):
 
 def create_verification(phr, con, cur):
     s = input('\n'.join([
-        'Please provide a sentence to be used to verify input of your master passphrase.',
+        '\nPlease provide a sentence to be used to verify input of your master passphrase.',
         'This sentence should be:',
         '\t1. COMPLETELY UNRELATED TO YOUR PASSPHRASE',
         '\t2. at least 24 characters in length',

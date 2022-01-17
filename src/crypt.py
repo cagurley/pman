@@ -1,6 +1,11 @@
 import hashlib
+import re
 import secrets
+import string
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+
+
+SPECIAL = '!@#$%^*()-_+=[{]}|'
 
 
 def encrypt(phr, txt):
@@ -26,3 +31,29 @@ def cs2bv(cs):
 
 def bv2cs(bv):
     return '$'.join([val.hex() for val in bv])
+
+
+def generate_string(length, all_required, lower, upper, digit, special):
+    valid = False
+    pool = ''
+    if lower:
+        pool += string.ascii_lowercase
+    if upper:
+        pool += string.ascii_uppercase
+    if digit:
+        pool += string.digits
+    if special:
+        pool += SPECIAL
+    while not valid:
+        generated = ''.join([secrets.choice(pool) for _ in range(length)])
+        valid = True
+        if all_required:
+            if lower and generated.upper() == generated:
+                valid = False
+            if upper and generated.lower() == generated:
+                valid = False
+            if digit and not re.match(r'\d', generated, re.A):
+                valid = False
+            if special and not re.match(rf'[{SPECIAL}]', generated):
+                valid = False
+    return generated
