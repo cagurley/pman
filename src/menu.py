@@ -9,6 +9,7 @@ MAIN_MENU = """
 
 Please review the options below:
     [1]  View stored credentials
+    [2]  Add stored credential
     [v]  Reset verification sentence
     [c]  Change master passphrase
     [e]  Exit
@@ -42,6 +43,8 @@ def prompt(phr, con, cur):
         sel = input('Please enter your selection:  ').lower()
         if sel == '1':
             crud.view_stored(con, cur)
+        elif sel == '2':
+            crud.add_stored(con, cur, phr)
         elif sel == 'v':
             crud.create_new_verification(phr, con, cur)
         elif sel == 'c':

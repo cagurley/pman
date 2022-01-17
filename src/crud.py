@@ -1,4 +1,25 @@
+import re
 from src import crypt
+
+
+def add_stored(con, cur, phr):
+    disp = input('\nPlease enter the service associated with the password as you would like it to be displayed:  ')
+    while True:
+        name = re.sub(r'\s', '_', disp)
+        name = re.sub(r'[^\w\d]', '', name).lower()
+        with con:
+            cur.execute("SELECT 1 FROM stored WHERE name = ? ORDER BY name", [name])
+            if cur.fetchone():
+                disp = input('\nThe provided name has already been used; please enter a name not yet used:  ')
+            else:
+                break
+    pw = input('\nNow enter the password to be associated with the given service:  ')
+    while not pw:
+        pw = input('\nNo password was provided; please enter the associated password:  ')
+    ct = crypt.bv2cs(crypt.encrypt(phr, pw))
+    with con:
+        cur.execute("INSERT INTO stored (name, display, cipher_text) VALUES (?, ?, ?)", [name, disp, ct])
+    return True
 
 
 def view_stored(con, cur):
