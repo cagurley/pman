@@ -111,21 +111,40 @@ def print_stored(results):
     return None
 
 
-def view_stored(con, cur):
+def prompt_from_results(con, cur, phr, rows):
+    while True:
+        sel = input('\nIf you would like to retrieve a password from a listed service, enter its number now:  ')
+        if rows and re.match(r'\d+$', sel) and 0 < int(sel) <= len(rows):
+            sel = int(sel) - 1
+            rid = rows[sel][0]
+            with con:
+                cur.execute("SELECT display, cipher_text FROM stored WHERE id = ? LIMIT 1", [rid])
+                row = cur.fetchone()
+            print(f'Password for {row[0]}:  {crypt.decrypt(phr, *crypt.cs2bv(row[1]))}')
+        elif len(sel) > 0:
+            print('Invalid selection; try again.')
+        else:
+            break
+    return True
+
+
+def view_stored(con, cur, phr):
     with con:
         cur.execute("SELECT id, display FROM stored ORDER BY name")
         rows = cur.fetchall()
     print_stored(rows)
+    prompt_from_results(con, cur, phr, rows)
     return None
 
 
-def search_stored(con, cur):
+def search_stored(con, cur, phr):
     inp = input('\nEnter a search term for the desired service:  ').strip()
     search = '%' + display2name(inp) + '%'
     with con:
         cur.execute("SELECT id, display FROM stored WHERE name LIKE ? ORDER BY name", [search])
         found = cur.fetchall()
     print_stored(found)
+    prompt_from_results(con, cur, phr, found)
     return None
 
 

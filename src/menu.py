@@ -43,9 +43,9 @@ def prompt(phr, con, cur):
         print(MAIN_MENU)
         sel = input('Please enter your selection:  ').lower()
         if sel == '1':
-            crud.view_stored(con, cur)
+            crud.view_stored(con, cur, phr)
         elif sel == '2':
-            crud.search_stored(con, cur)
+            crud.search_stored(con, cur, phr)
         elif sel == '3':
             crud.add_stored(con, cur, phr)
         elif sel == 'v':
