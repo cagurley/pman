@@ -2,6 +2,11 @@ import re
 from src import crypt
 
 
+def display2name(disp):
+    name = re.sub(r'\s+', '_', disp)
+    return re.sub(r'\W', '', name, re.A).lower()
+
+
 def generate_password():
     params_loop = True
     while params_loop:
@@ -77,8 +82,7 @@ def add_stored(con, cur, phr):
     disp = input('\nPlease enter the service associated with the password as you would like it to be displayed:  ')
     disp = disp.strip()
     while True:
-        name = re.sub(r'\s+', '_', disp)
-        name = re.sub(r'\W', '', name, re.A).lower()
+        name = display2name(disp)
         with con:
             cur.execute("SELECT 1 FROM stored WHERE name = ? ORDER BY name", [name])
             if cur.fetchone():
@@ -100,13 +104,28 @@ def add_stored(con, cur, phr):
     return True
 
 
+def print_stored(results):
+    print('\n===STORED CREDENTIALS===\n')
+    for i, row in enumerate(results):
+        print(f'{i+1:4}.\t' + row[1])
+    return None
+
+
 def view_stored(con, cur):
     with con:
-        cur.execute("SELECT display FROM stored ORDER BY name")
-        vals = cur.fetchall()
-    print('\n===STORED CREDENTIALS===\n')
-    for val in vals:
-        print('\t' + val[0])
+        cur.execute("SELECT id, display FROM stored ORDER BY name")
+        rows = cur.fetchall()
+    print_stored(rows)
+    return None
+
+
+def search_stored(con, cur):
+    inp = input('\nEnter a search term for the desired service:  ').strip()
+    search = '%' + display2name(inp) + '%'
+    with con:
+        cur.execute("SELECT id, display FROM stored WHERE name LIKE ? ORDER BY name", [search])
+        found = cur.fetchall()
+    print_stored(found)
     return None
 
 
