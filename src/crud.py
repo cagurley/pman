@@ -79,7 +79,7 @@ def generate_password():
     return pw
 
 
-def prompt_display(con, cur):
+def prompt_service(con, cur):
     disp = input('\nPlease enter the service associated with the password as you would like it to be displayed:  ')
     disp = disp.strip()
     while True:
@@ -93,8 +93,7 @@ def prompt_display(con, cur):
     return name, disp
 
 
-def add_stored(con, cur, phr):
-    name, disp = prompt_display(con, cur)
+def prompt_password(phr):
     wiz = input('\nNow you will be guided through the password generation wizard (recommended); '
                 + 'if you would rather provide your own password, enter [n]:  ')
     if len(wiz) > 0 and wiz[0].lower() == 'n':
@@ -103,7 +102,12 @@ def add_stored(con, cur, phr):
             pw = input('\nNo password was provided; please enter the associated password:  ')
     else:
         pw = generate_password()
-    ct = crypt.bv2cs(crypt.encrypt(phr, pw))
+    return crypt.bv2cs(crypt.encrypt(phr, pw))
+
+
+def add_stored(con, cur, phr):
+    name, disp = prompt_service(con, cur)
+    ct = prompt_password(phr)
     with con:
         cur.execute("INSERT INTO stored (name, display, cipher_text) VALUES (?, ?, ?)", [name, disp, ct])
     print(f'\nNew password for service {disp} stored.\n')
@@ -137,12 +141,17 @@ def prompt_from_results(con, cur, phr, rows):
             if len(sel) == 0:
                 break
             elif sel == '1':
-                name, disp = prompt_display(con, cur)
+                name, disp = prompt_service(con, cur)
                 with con:
                     cur.execute("UPDATE stored SET name = ?, display = ? WHERE id = ?", [name, disp, rid])
                 break
             elif sel == '2':
-                pass  # Add in future patch
+                sel = input('Are you sure you want to change the password for this service? ([y] to confirm)  ').lower()
+                if len(sel) > 0 and sel == 'y':
+                    ct = prompt_password(phr)
+                    with con:
+                        cur.execute("UPDATE stored SET cipher_text = ? WHERE id = ?", [ct, rid])
+                    break
             elif sel == 'x':
                 pass  # Add in future patch
         return True
