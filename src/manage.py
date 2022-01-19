@@ -1,10 +1,16 @@
 import json
+import os
 from pathlib import Path
 import sqlite3 as sq3
 
 
 CDIR = Path('./config')
 CFILE = CDIR.joinpath('config.json')
+
+
+def clear():
+    os.system('cls' if os.name == 'nt' else 'clear')
+    return None
 
 
 def config():

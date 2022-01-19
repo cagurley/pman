@@ -1,7 +1,7 @@
-import os
 from time import sleep
 from cryptography.exceptions import InvalidTag
 from src import crud
+from src.manage import clear
 
 
 MAIN_MENU = """
@@ -30,11 +30,6 @@ def load_phrase(con, cur):
             break
     input('Passphrase verified. Press enter to continue. ')
     return p
-
-
-def clear():
-    os.system('cls' if os.name == 'nt' else 'clear')
-    return None
 
 
 def prompt(phr, con, cur):

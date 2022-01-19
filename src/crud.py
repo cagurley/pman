@@ -1,5 +1,6 @@
 import re
 from src import crypt
+from src.manage import clear
 
 
 def display2name(disp):
@@ -78,17 +79,22 @@ def generate_password():
     return pw
 
 
-def add_stored(con, cur, phr):
+def prompt_display(con, cur):
     disp = input('\nPlease enter the service associated with the password as you would like it to be displayed:  ')
     disp = disp.strip()
     while True:
         name = display2name(disp)
         with con:
             cur.execute("SELECT 1 FROM stored WHERE name = ? ORDER BY name", [name])
-            if cur.fetchone():
+            if len(name) < 0 or cur.fetchone():
                 disp = input('\nThe provided name has already been used; please enter a name not yet used:  ')
             else:
                 break
+    return name, disp
+
+
+def add_stored(con, cur, phr):
+    name, disp = prompt_display(con, cur)
     wiz = input('\nNow you will be guided through the password generation wizard (recommended); '
                 + 'if you would rather provide your own password, enter [n]:  ')
     if len(wiz) > 0 and wiz[0].lower() == 'n':
@@ -112,39 +118,63 @@ def print_stored(results):
 
 
 def prompt_from_results(con, cur, phr, rows):
-    while True:
-        sel = input('\nIf you would like to retrieve a password from a listed service, enter its number now:  ')
-        if rows and re.match(r'\d+$', sel) and 0 < int(sel) <= len(rows):
-            sel = int(sel) - 1
-            rid = rows[sel][0]
-            with con:
-                cur.execute("SELECT display, cipher_text FROM stored WHERE id = ? LIMIT 1", [rid])
-                row = cur.fetchone()
-            print(f'Password for {row[0]}:  {crypt.decrypt(phr, *crypt.cs2bv(row[1]))}')
-        elif len(sel) > 0:
-            print('Invalid selection; try again.')
-        else:
-            break
-    return True
+    sel = input('\nIf you would like to retrieve a password from a listed service, enter its number now:  ')
+    if rows and re.match(r'\d+$', sel) and 0 < int(sel) <= len(rows):
+        sel = int(sel) - 1
+        rid = rows[sel][0]
+        with con:
+            cur.execute("SELECT display, cipher_text FROM stored WHERE id = ? LIMIT 1", [rid])
+            row = cur.fetchone()
+        print(f'Password for {row[0]}:  {crypt.decrypt(phr, *crypt.cs2bv(row[1]))}')
+        print('\n'.join([
+            'Would you like to do modify this credential?\n',
+            '[1]\tUpdate service name',
+            '[2]\tChange password',
+            '[x]\tDelete credential'
+        ]))
+        while True:
+            sel = input('\nSelection (default is none):  ').lower()
+            if len(sel) == 0:
+                break
+            elif sel == '1':
+                name, disp = prompt_display(con, cur)
+                with con:
+                    cur.execute("UPDATE stored SET name = ?, display = ? WHERE id = ?", [name, disp, rid])
+                break
+            elif sel == '2':
+                pass  # Add in future patch
+            elif sel == 'x':
+                pass  # Add in future patch
+        return True
+    elif len(sel) > 0:
+        print('Invalid selection; try again.')
+    else:
+        return False
 
 
 def view_stored(con, cur, phr):
-    with con:
-        cur.execute("SELECT id, display FROM stored ORDER BY name")
-        rows = cur.fetchall()
-    print_stored(rows)
-    prompt_from_results(con, cur, phr, rows)
+    view = True
+    while view:
+        with con:
+            cur.execute("SELECT id, display FROM stored ORDER BY name")
+            rows = cur.fetchall()
+        print_stored(rows)
+        view = prompt_from_results(con, cur, phr, rows)
+        clear()
     return None
 
 
 def search_stored(con, cur, phr):
     inp = input('\nEnter a search term for the desired service:  ').strip()
     search = '%' + display2name(inp) + '%'
-    with con:
-        cur.execute("SELECT id, display FROM stored WHERE name LIKE ? ORDER BY name", [search])
-        found = cur.fetchall()
-    print_stored(found)
-    prompt_from_results(con, cur, phr, found)
+    view = True
+    while view:
+        with con:
+            cur.execute("SELECT id, display FROM stored WHERE name LIKE ? ORDER BY name", [search])
+            found = cur.fetchall()
+        print_stored(found)
+        view = prompt_from_results(con, cur, phr, found)
+        clear()
     return None
 
 
