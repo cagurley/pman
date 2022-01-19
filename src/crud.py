@@ -153,7 +153,12 @@ def prompt_from_results(con, cur, phr, rows):
                         cur.execute("UPDATE stored SET cipher_text = ? WHERE id = ?", [ct, rid])
                     break
             elif sel == 'x':
-                pass  # Add in future patch
+                sel = input('\nWARNING!!! THIS WILL PERMANENTLY DELETE THIS CREDENTIAL.\n'
+                            + 'Are you sure you want to delete? (type [DELETE] to confirm)  ')
+                if sel == 'DELETE':
+                    with con:
+                        cur.execute("DELETE FROM stored WHERE id = ?", [rid])
+                    break
         return True
     elif len(sel) > 0:
         print('Invalid selection; try again.')
@@ -165,7 +170,7 @@ def view_stored(con, cur, phr):
     view = True
     while view:
         with con:
-            cur.execute("SELECT id, display FROM stored ORDER BY name")
+            cur.execute("SELECT id, display FROM stored WHERE name <> '~phrase_verification' ORDER BY name")
             rows = cur.fetchall()
         print_stored(rows)
         view = prompt_from_results(con, cur, phr, rows)
@@ -179,7 +184,7 @@ def search_stored(con, cur, phr):
     view = True
     while view:
         with con:
-            cur.execute("SELECT id, display FROM stored WHERE name LIKE ? ORDER BY name", [search])
+            cur.execute("SELECT id, display FROM stored WHERE name LIKE ? and name <> '~phrase_verification' ORDER BY name", [search])
             found = cur.fetchall()
         print_stored(found)
         view = prompt_from_results(con, cur, phr, found)
