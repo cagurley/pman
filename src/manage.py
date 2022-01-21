@@ -40,9 +40,10 @@ def db_connect(db_dir):
         cur.execute("""
             CREATE TABLE IF NOT EXISTS stored (
                 id INTEGER PRIMARY KEY,
-                name TEXT UNIQUE,
-                display TEXT,
-                cipher_text TEXT
+                name TEXT UNIQUE NOT NULL,
+                display TEXT NOT NULL,
+                username TEXT NOT NULL,
+                password TEXT NOT NULL
             )
         """)
     return con, cur

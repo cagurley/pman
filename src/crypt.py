@@ -33,7 +33,7 @@ def bv2cs(bv):
     return '$'.join([val.hex() for val in bv])
 
 
-def generate_string(length, all_required, lower, upper, digit, special):
+def generate_string(length=24, all_required=False, lower=True, upper=True, digit=True, special=True):
     valid = False
     pool = ''
     if lower:

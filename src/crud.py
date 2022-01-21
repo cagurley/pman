@@ -109,7 +109,7 @@ def add_stored(con, cur, phr):
     name, disp = prompt_service(con, cur)
     ct = prompt_password(phr)
     with con:
-        cur.execute("INSERT INTO stored (name, display, cipher_text) VALUES (?, ?, ?)", [name, disp, ct])
+        cur.execute("INSERT INTO stored (name, display, password) VALUES (?, ?, ?)", [name, disp, ct])
     print(f'\nNew password for service {disp} stored.\n')
     return True
 
@@ -127,7 +127,7 @@ def prompt_from_results(con, cur, phr, rows):
         sel = int(sel) - 1
         rid = rows[sel][0]
         with con:
-            cur.execute("SELECT display, cipher_text FROM stored WHERE id = ? LIMIT 1", [rid])
+            cur.execute("SELECT display, password FROM stored WHERE id = ? LIMIT 1", [rid])
             row = cur.fetchone()
         print(f'Password for {row[0]}:  {crypt.decrypt(phr, *crypt.cs2bv(row[1]))}')
         print('\n'.join([
@@ -150,7 +150,7 @@ def prompt_from_results(con, cur, phr, rows):
                 if len(sel) > 0 and sel == 'y':
                     ct = prompt_password(phr)
                     with con:
-                        cur.execute("UPDATE stored SET cipher_text = ? WHERE id = ?", [ct, rid])
+                        cur.execute("UPDATE stored SET password = ? WHERE id = ?", [ct, rid])
                     break
             elif sel == 'x':
                 sel = input('\nWARNING!!! THIS WILL PERMANENTLY DELETE THIS CREDENTIAL.\n'
@@ -194,12 +194,12 @@ def search_stored(con, cur, phr):
 
 def reencrypt_stored(oldp, newp, con, cur):
     with con:
-        cur.execute("SELECT id, cipher_text FROM stored")
+        cur.execute("SELECT id, password FROM stored")
         rows = cur.fetchall()
         for row in rows:
             pt = crypt.decrypt(oldp, *crypt.cs2bv(row[1]))
             ct = crypt.bv2cs(crypt.encrypt(newp, pt))
-            cur.execute("UPDATE stored SET cipher_text = ? WHERE id = ?", [ct, row[0]])
+            cur.execute("UPDATE stored SET password = ? WHERE id = ?", [ct, row[0]])
     return True
 
 
@@ -220,10 +220,11 @@ def create_verification(phr, con, cur):
         if confirm.lower() == 'y':
             break
         s = input('Provide a different sentence.\n\n')
-    ct = crypt.bv2cs(crypt.encrypt(phr, s))
+    pw = crypt.bv2cs(crypt.encrypt(phr, s))
+    un = crypt.bv2cs(crypt.encrypt(phr, crypt.generate_string()))
     with con:
-        cur.execute("INSERT INTO stored (name, display, cipher_text) VALUES (?, ?, ?)",
-                    ['~phrase_verification', 'PHRASE VERIFICATION', ct])
+        cur.execute("INSERT INTO stored (name, display, username, password) VALUES (?, ?, ?, ?)",
+                    ['~phrase_verification', 'PHRASE VERIFICATION', un, pw])
     return True
 
 
@@ -237,7 +238,7 @@ def verify_phrase(phr, con, cur):
     verification = None
     while not verification:
         with con:
-            cur.execute("SELECT cipher_text FROM stored WHERE name = '~phrase_verification'")
+            cur.execute("SELECT password FROM stored WHERE name = '~phrase_verification'")
         verification = cur.fetchone()
         if not verification:
             print('You have not yet provided a verification sentence. Please do so now.')
