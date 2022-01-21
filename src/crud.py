@@ -192,14 +192,16 @@ def search_stored(con, cur, phr):
     return None
 
 
-def reencrypt_stored(oldp, newp, con, cur):
+def reencrypt_stored(old_phr, new_phr, con, cur):
     with con:
-        cur.execute("SELECT id, password FROM stored")
+        cur.execute("SELECT id, username, password FROM stored")
         rows = cur.fetchall()
         for row in rows:
-            pt = crypt.decrypt(oldp, *crypt.cs2bv(row[1]))
-            ct = crypt.bv2cs(crypt.encrypt(newp, pt))
-            cur.execute("UPDATE stored SET password = ? WHERE id = ?", [ct, row[0]])
+            unt = crypt.decrypt(old_phr, *crypt.cs2bv(row[1]))
+            pwt = crypt.decrypt(old_phr, *crypt.cs2bv(row[2]))
+            cun = crypt.bv2cs(crypt.encrypt(new_phr, unt))
+            cpw = crypt.bv2cs(crypt.encrypt(new_phr, pwt))
+            cur.execute("UPDATE stored SET username = ?, password = ? WHERE id = ?", [cun, cpw, row[0]])
     return True
 
 
