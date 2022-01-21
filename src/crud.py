@@ -107,9 +107,10 @@ def prompt_password(phr):
 
 def add_stored(con, cur, phr):
     name, disp = prompt_service(con, cur)
-    ct = prompt_password(phr)
+    cun = crypt.bv2cs(crypt.encrypt(phr, crypt.generate_string()))
+    cpw = prompt_password(phr)
     with con:
-        cur.execute("INSERT INTO stored (name, display, password) VALUES (?, ?, ?)", [name, disp, ct])
+        cur.execute("INSERT INTO stored (name, display, username, password) VALUES (?, ?, ?, ?)", [name, disp, cun, cpw])
     print(f'\nNew password for service {disp} stored.\n')
     return True
 
