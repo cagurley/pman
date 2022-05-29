@@ -8,13 +8,13 @@ def display2name(disp):
     return re.sub(r'\W', '', name, re.A).lower()
 
 
-def generate_password():
+def generate_value():
     params_loop = True
     while params_loop:
         length = 24
         lower, upper, digit, special = True, True, True, True
         all_required = False
-        print('\nDefault password generation parameters are as follows:\n'
+        print('\nDefault generation parameters are as follows:\n'
               + '\n\tlength: 24'
               + '\n\tvalid characters: lowercase, uppercase, digits, and special'
               + '\n\tat least one of each character group is NOT required')
@@ -62,7 +62,7 @@ def generate_password():
         gen_loop = True
         while gen_loop:
             pw = crypt.generate_string(length, all_required, lower, upper, digit, special)
-            print(f'Generated the following password:  {pw}')
+            print(f'Generated the following value:  {pw}')
             while True:
                 inp = input('\nEnter [y] to accept, [r] to regenerate, or [c] to change parameters:  ').lower()
                 if len(inp) > 0:
@@ -80,7 +80,7 @@ def generate_password():
 
 
 def prompt_service(con, cur):
-    disp = input('\nPlease enter the service associated with the password as you would like it to be displayed:  ')
+    disp = input('\nPlease enter the service associated with the credentials as you would like it to be displayed:  ')
     disp = disp.strip()
     while True:
         name = display2name(disp)
@@ -93,6 +93,18 @@ def prompt_service(con, cur):
     return name, disp
 
 
+def prompt_username(phr):
+    wiz = input('\nYou will be asked to provide your username for the given service; '
+               + 'if you would rather generate a random username, enter [n]:  ')
+    if len(wiz) > 0 and wiz[0].lower() == 'n':
+        un = generate_value()
+    else:
+        un = input('\nPlease enter the username:  ')
+        while not un:
+            un = input('\nNo username was provided; please enter the username:  ')
+    return crypt.bv2cs(crypt.encrypt(phr, un))
+
+
 def prompt_password(phr):
     wiz = input('\nNow you will be guided through the password generation wizard (recommended); '
                 + 'if you would rather provide your own password, enter [n]:  ')
@@ -101,13 +113,13 @@ def prompt_password(phr):
         while not pw:
             pw = input('\nNo password was provided; please enter the associated password:  ')
     else:
-        pw = generate_password()
+        pw = generate_value()
     return crypt.bv2cs(crypt.encrypt(phr, pw))
 
 
 def add_stored(con, cur, phr):
     name, disp = prompt_service(con, cur)
-    cun = crypt.bv2cs(crypt.encrypt(phr, crypt.generate_string()))
+    cun = prompt_username(phr)
     cpw = prompt_password(phr)
     with con:
         cur.execute("INSERT INTO stored (name, display, username, password) VALUES (?, ?, ?, ?)", [name, disp, cun, cpw])
@@ -132,7 +144,7 @@ def prompt_from_results(con, cur, phr, rows):
             row = cur.fetchone()
         print(f'Password for {row[0]}:  {crypt.decrypt(phr, *crypt.cs2bv(row[1]))}')
         print('\n'.join([
-            'Would you like to do modify this credential?\n',
+            'Would you like to modify this credential?\n',
             '[1]\tUpdate service name',
             '[2]\tChange password',
             '[x]\tDelete credential'
