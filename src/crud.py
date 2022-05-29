@@ -1,4 +1,5 @@
 import re
+import pyperclip as ppc
 from src import crypt
 from src.manage import clear
 
@@ -61,8 +62,8 @@ def generate_value():
         params_loop = False
         gen_loop = True
         while gen_loop:
-            pw = crypt.generate_string(length, all_required, lower, upper, digit, special)
-            print(f'Generated the following value:  {pw}')
+            val = crypt.generate_string(length, all_required, lower, upper, digit, special)
+            print(f'Generated the following value:  {val}')
             while True:
                 inp = input('\nEnter [y] to accept, [r] to regenerate, or [c] to change parameters:  ').lower()
                 if len(inp) > 0:
@@ -76,7 +77,7 @@ def generate_value():
                 elif inp == 'y':
                     gen_loop = False
                     break
-    return pw
+    return val
 
 
 def prompt_service(con, cur):
@@ -145,7 +146,10 @@ def prompt_from_results(con, cur, phr, rows):
         print(f"\n{row[0]}"
               + '\n======'
               + f"\nUsername:  {crypt.decrypt(phr, *crypt.cs2bv(row[1]))}"
-              + f"\nPassword:  {crypt.decrypt(phr, *crypt.cs2bv(row[2]))}\n")
+              + f"\nPassword copied to clipboard.")
+        ppc.copy(crypt.decrypt(phr, *crypt.cs2bv(row[2])))
+        input('\nWhen finished with password, press enter (will clear clipboard).\n')
+        ppc.copy('')
         print('\n'.join([
             'Would you like to modify this credential?\n',
             '[1]\tUpdate service name',
