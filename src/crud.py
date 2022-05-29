@@ -135,7 +135,7 @@ def print_stored(results):
 
 
 def prompt_from_results(con, cur, phr, rows):
-    sel = input('\nIf you would like to retrieve a password from a listed service, enter its number now:  ')
+    sel = input('\nIf you would like to retrieve credentials from a listed service, enter its number now:  ')
     if rows and re.match(r'\d+$', sel) and 0 < int(sel) <= len(rows):
         sel = int(sel) - 1
         rid = rows[sel][0]
@@ -149,7 +149,8 @@ def prompt_from_results(con, cur, phr, rows):
         print('\n'.join([
             'Would you like to modify this credential?\n',
             '[1]\tUpdate service name',
-            '[2]\tChange password',
+            '[2]\tChange username',
+            '[3]\tChange password',
             '[x]\tDelete credential'
         ]))
         while True:
@@ -162,6 +163,13 @@ def prompt_from_results(con, cur, phr, rows):
                     cur.execute("UPDATE stored SET name = ?, display = ? WHERE id = ?", [name, disp, rid])
                 break
             elif sel == '2':
+                sel = input('Are you sure you want to change the username for this service? ([y] to confirm)  ').lower()
+                if len(sel) > 0 and sel == 'y':
+                    ct = prompt_username(phr)
+                    with con:
+                        cur.execute("UPDATE stored SET username = ? WHERE id = ?", [ct, rid])
+                    break
+            elif sel == '3':
                 sel = input('Are you sure you want to change the password for this service? ([y] to confirm)  ').lower()
                 if len(sel) > 0 and sel == 'y':
                     ct = prompt_password(phr)
@@ -169,7 +177,7 @@ def prompt_from_results(con, cur, phr, rows):
                         cur.execute("UPDATE stored SET password = ? WHERE id = ?", [ct, rid])
                     break
             elif sel == 'x':
-                sel = input('\nWARNING!!! THIS WILL PERMANENTLY DELETE THIS CREDENTIAL.\n'
+                sel = input('\nWARNING!!! THIS WILL PERMANENTLY DELETE THESE CREDENTIALS.\n'
                             + 'Are you sure you want to delete? (type [DELETE] to confirm)  ')
                 if sel == 'DELETE':
                     with con:
