@@ -140,9 +140,12 @@ def prompt_from_results(con, cur, phr, rows):
         sel = int(sel) - 1
         rid = rows[sel][0]
         with con:
-            cur.execute("SELECT display, password FROM stored WHERE id = ? LIMIT 1", [rid])
+            cur.execute("SELECT display, username, password FROM stored WHERE id = ? LIMIT 1", [rid])
             row = cur.fetchone()
-        print(f'Password for {row[0]}:  {crypt.decrypt(phr, *crypt.cs2bv(row[1]))}')
+        print(f"\n{row[0]}"
+              + '\n======'
+              + f"\nUsername:  {crypt.decrypt(phr, *crypt.cs2bv(row[1]))}"
+              + f"\nPassword:  {crypt.decrypt(phr, *crypt.cs2bv(row[2]))}\n")
         print('\n'.join([
             'Would you like to modify this credential?\n',
             '[1]\tUpdate service name',
